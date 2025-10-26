@@ -1,1 +1,57 @@
 
+{
+  "Comment": "Exemplo de máquina de estados do laboratório da DIO",
+  "StartAt": "ValidarEntrada",
+  "States": {
+    "ValidarEntrada": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGIAO:CONTA:function:ValidarEntrada",
+      "Next": "DecisaoValida"
+    },
+    "DecisaoValida": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.valido",
+          "BooleanEquals": true,
+          "Next": "ProcessarDados"
+        }
+      ],
+      "Default": "EntradaInvalida"
+    },
+    "ProcessarDados": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGIAO:CONTA:function:ProcessarDados",
+      "Next": "SalvarResultado",
+      "Retry": [
+        {
+          "ErrorEquals": [ "Lambda.ServiceException", "Lambda.AWSLambdaException" ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [ "States.ALL" ],
+          "Next": "FalhaProcessamento"
+        }
+      ]
+    },
+    "SalvarResultado": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGIAO:CONTA:function:SalvarResultado",
+      "End": true
+    },
+    "EntradaInvalida": {
+      "Type": "Fail",
+      "Error": "Entrada inválida",
+      "Cause": "Os dados não passaram na validação inicial"
+    },
+    "FalhaProcessamento": {
+      "Type": "Fail",
+      "Error": "Erro ao processar dados",
+      "Cause": "As tentativas se esgotaram"
+    }
+  }
+}
